@@ -54,10 +54,10 @@ export default function Home() {
             borderRadius: '8px',
             border: 'none',
             cursor: 'pointer',
-            transition: 'opacity 0.2s',
+            transition: 'all 0.2s ease',
           }}
-          onMouseOver={(e) => e.currentTarget.style.opacity = '0.9'}
-          onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+          onMouseOver={(e) => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.02)'; }}
+          onMouseOut={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1)'; }}
         >
           Play Now →
         </button>
