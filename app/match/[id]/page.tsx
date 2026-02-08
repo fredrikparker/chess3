@@ -1,137 +1,373 @@
 'use client';
 
+import { useParams } from 'next/navigation';
 import Board from '@/components/chess/Board';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { useGameStore } from '@/store/useGameStore';
-import { useEffect, useState } from 'react';
-import { Trophy, Clock, Flag, User } from 'lucide-react';
+import { useState } from 'react';
 
-export default function MatchPage({ params }: { params: { id: string } }) {
-    const { turn, status, resetGame } = useGameStore();
+export default function MatchPage() {
+    const params = useParams();
+    const { turn, status, resetGame, resignGame, history } = useGameStore();
+    const [activeTab, setActiveTab] = useState<'wager' | 'chat' | 'moves'>('wager');
+    const [showWalletModal, setShowWalletModal] = useState(false);
+    const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
+
+    const wallets = [
+        { name: 'MetaMask', icon: '🦊' },
+        { name: 'WalletConnect', icon: '🔗' },
+        { name: 'Coinbase Wallet', icon: '💎' },
+        { name: 'Phantom', icon: '👻' },
+    ];
+
+    const handleConnect = (walletName: string) => {
+        setConnectedWallet(walletName);
+        setShowWalletModal(false);
+    };
 
     return (
-        <main className="min-h-screen bg-background text-foreground flex flex-col items-center">
-            {/* Header / Nav */}
-            <header className="w-full h-16 border-b border-border flex items-center justify-between px-6 bg-card/50 backdrop-blur-md fixed top-0 z-50">
-                <div className="flex items-center gap-2">
-                    <span className="text-2xl font-accent text-primary">chess3</span>
-                    <span className="text-xs text-muted-foreground uppercase tracking-widest px-2 py-0.5 border border-border rounded">Beta</span>
+        <div style={{
+            minHeight: '100vh',
+            background: '#000',
+            color: '#fff',
+        }}>
+            {/* Wallet Modal */}
+            {showWalletModal && (
+                <div style={{
+                    position: 'fixed',
+                    inset: 0,
+                    background: 'rgba(0,0,0,0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 50,
+                }} onClick={() => setShowWalletModal(false)}>
+                    <div
+                        style={{
+                            background: '#111',
+                            borderRadius: '12px',
+                            border: '1px solid #222',
+                            padding: '24px',
+                            width: '100%',
+                            maxWidth: '360px',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px',
+                        }}>
+                            <h2 style={{ fontSize: '18px', fontWeight: 500 }}>Connect Wallet</h2>
+                            <button
+                                onClick={() => setShowWalletModal(false)}
+                                style={{
+                                    background: 'transparent',
+                                    color: '#666',
+                                    fontSize: '20px',
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {wallets.map((wallet) => (
+                                <button
+                                    key={wallet.name}
+                                    onClick={() => handleConnect(wallet.name)}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '12px',
+                                        padding: '14px 16px',
+                                        background: '#0a0a0a',
+                                        border: '1px solid #222',
+                                        borderRadius: '8px',
+                                        color: '#fff',
+                                        fontSize: '14px',
+                                        fontWeight: 500,
+                                        transition: 'border-color 0.2s',
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.borderColor = '#444'}
+                                    onMouseOut={(e) => e.currentTarget.style.borderColor = '#222'}
+                                >
+                                    <span style={{ fontSize: '24px' }}>{wallet.icon}</span>
+                                    {wallet.name}
+                                </button>
+                            ))}
+                        </div>
+                        <p style={{
+                            marginTop: '16px',
+                            fontSize: '11px',
+                            color: '#555',
+                            textAlign: 'center',
+                        }}>
+                            By connecting, you agree to the Terms of Service
+                        </p>
+                    </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <Button variant="outline" className="text-xs h-8">Connect Wallet</Button>
-                </div>
+            )}
+
+            {/* Header */}
+            <header style={{
+                height: '56px',
+                borderBottom: '1px solid #1a1a1a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 24px',
+            }}>
+                <a href="/" style={{ fontSize: '20px', fontWeight: 300 }}>
+                    chess<span style={{ color: '#c9a227' }}>3</span>
+                </a>
+                <button
+                    onClick={() => setShowWalletModal(true)}
+                    style={{
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        background: connectedWallet ? '#c9a227' : 'transparent',
+                        border: connectedWallet ? 'none' : '1px solid #333',
+                        borderRadius: '6px',
+                        color: connectedWallet ? '#000' : '#888',
+                        fontWeight: connectedWallet ? 500 : 400,
+                    }}
+                >
+                    {connectedWallet ? `🟢 ${connectedWallet.slice(0, 6)}...` : 'Connect Wallet'}
+                </button>
             </header>
 
-            {/* Main Content - Centered Stage */}
-            <div className="w-full max-w-[1400px] px-6 lg:px-12 pt-24 pb-12 flex-1 grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-8 items-start justify-items-center">
-
-                {/* Left Panel - Hidden on mobile */}
-                <div className="hidden lg:flex flex-col w-full max-w-xs space-y-4 opacity-75 hover:opacity-100 transition-opacity">
-                    <Card className="p-4 bg-card/30 border-border">
-                        <div className="text-xs font-heading text-muted-foreground uppercase mb-4">Match Info</div>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">ID</span>
-                                <span className="font-mono">{params.id.slice(0, 8)}...</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Stake</span>
-                                <span className="text-primary font-bold">50 USDC</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Time Control</span>
-                                <span>10 min</span>
-                            </div>
-                        </div>
-                    </Card>
-                </div>
-
-                {/* Center Stage - The Board */}
-                <div className="flex flex-col gap-4 w-full max-w-[600px]">
-                    {/* Opponent Bar */}
-                    <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                                <User className="w-5 h-5 opacity-50" />
-                            </div>
+            {/* Main */}
+            <main style={{
+                maxWidth: '1100px',
+                margin: '0 auto',
+                padding: '32px 24px',
+                display: 'grid',
+                gridTemplateColumns: '1fr 320px',
+                gap: '32px',
+            }}>
+                {/* Board Section */}
+                <div style={{ maxWidth: '520px' }}>
+                    {/* Opponent bar - attached to board */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        background: '#111',
+                        borderRadius: '4px 4px 0 0',
+                        borderBottom: '1px solid #222',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '50%',
+                                background: '#1a1a1a',
+                            }} />
                             <div>
-                                <div className="font-heading text-sm font-bold">Opponent</div>
-                                <div className="text-xs text-muted-foreground">1200 ELO</div>
+                                <div style={{ fontSize: '13px', fontWeight: 500 }}>Opponent</div>
+                                <div style={{ fontSize: '11px', color: '#666' }}>1200</div>
                             </div>
                         </div>
-                        <div className="bg-card border border-border px-4 py-2 rounded text-xl font-mono tabular-nums">
-                            09:45
+                        <div style={{
+                            fontSize: '20px',
+                            fontFamily: 'monospace',
+                            color: '#888',
+                            background: '#0a0a0a',
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                        }}>
+                            9:45
                         </div>
                     </div>
 
-                    {/* Board Wrapper */}
-                    <div className="w-full aspect-square">
-                        <Board boardWidth={600} />
+                    {/* Board */}
+                    <div style={{
+                        width: '100%',
+                        aspectRatio: '1',
+                        background: '#111',
+                    }}>
+                        <Board boardWidth={520} />
                     </div>
 
-                    {/* Player Bar */}
-                    <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center border border-primary/20">
-                                <User className="w-5 h-5 text-primary" />
-                            </div>
+                    {/* Player bar - attached to board */}
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        background: '#111',
+                        borderRadius: '0 0 4px 4px',
+                        borderTop: '1px solid #222',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '50%',
+                                background: '#c9a227',
+                                opacity: 0.4,
+                            }} />
                             <div>
-                                <div className="font-heading text-sm font-bold text-foreground">You</div>
-                                <div className="text-xs text-muted-foreground">1254 ELO</div>
+                                <div style={{ fontSize: '13px', fontWeight: 500 }}>You</div>
+                                <div style={{ fontSize: '11px', color: '#666' }}>1254</div>
                             </div>
                         </div>
-                        <div className="bg-card border border-border px-4 py-2 rounded text-xl font-mono tabular-nums text-foreground">
-                            09:12
+                        <div style={{
+                            fontSize: '20px',
+                            fontFamily: 'monospace',
+                            background: '#0a0a0a',
+                            padding: '4px 10px',
+                            borderRadius: '4px',
+                        }}>
+                            9:12
                         </div>
                     </div>
 
-                    {/* Game Status */}
-                    {status !== 'active' && (
-                        <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-lg text-center">
-                            <div className="text-lg font-heading font-bold text-primary mb-2">
+                    {/* Game Over */}
+                    {status !== 'active' && status !== 'idle' && (
+                        <div style={{
+                            marginTop: '24px',
+                            padding: '24px',
+                            background: '#111',
+                            borderRadius: '8px',
+                            textAlign: 'center',
+                        }}>
+                            <div style={{ fontSize: '18px', fontWeight: 500, marginBottom: '16px' }}>
                                 {status === 'checkmate' ? (turn === 'w' ? 'Black Wins' : 'White Wins') : 'Draw'}
                             </div>
-                            <Button onClick={resetGame}>New Game</Button>
+                            <button
+                                onClick={resetGame}
+                                style={{
+                                    padding: '10px 24px',
+                                    background: '#fff',
+                                    color: '#000',
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    fontWeight: 500,
+                                }}
+                            >
+                                New Game
+                            </button>
                         </div>
                     )}
                 </div>
 
-                {/* Right Panel - Tools */}
-                <div className="w-full max-w-[360px] h-[600px] flex flex-col">
-                    <Card className="flex-1 bg-card border-border flex flex-col overflow-hidden">
-                        <div className="flex border-b border-border">
-                            <Button variant="ghost" className="flex-1 rounded-none border-b-2 border-primary text-primary h-12">Play</Button>
-                            <Button variant="ghost" className="flex-1 rounded-none text-muted-foreground h-12 hover:text-foreground">Chat</Button>
-                            <Button variant="ghost" className="flex-1 rounded-none text-muted-foreground h-12 hover:text-foreground">Moves</Button>
-                        </div>
+                {/* Right Panel */}
+                <div style={{
+                    background: '#0a0a0a',
+                    borderRadius: '8px',
+                    border: '1px solid #1a1a1a',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    height: '560px',
+                }}>
+                    {/* Tabs */}
+                    <div style={{
+                        display: 'flex',
+                        borderBottom: '1px solid #1a1a1a',
+                    }}>
+                        {(['wager', 'chat', 'moves'] as const).map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px',
+                                    fontSize: '13px',
+                                    fontWeight: 500,
+                                    color: activeTab === tab ? '#fff' : '#555',
+                                    background: 'transparent',
+                                    borderBottom: activeTab === tab ? '2px solid #c9a227' : '2px solid transparent',
+                                    textTransform: 'capitalize',
+                                }}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
 
-                        <div className="p-6 flex-1 flex flex-col gap-6">
-                            <div className="text-center space-y-2">
-                                <Trophy className="w-12 h-12 mx-auto text-primary mb-4" />
-                                <h2 className="text-xl font-heading font-bold">Place Your Wager</h2>
-                                <p className="text-sm text-muted-foreground">Winner takes all. Funds are escrowed on Yellow Network.</p>
-                            </div>
-
-                            <div className="space-y-4">
-                                <Button className="w-full h-12 text-base font-bold" size="lg">Place 50 USDC</Button>
-                                <Button variant="outline" className="w-full">Custom Amount</Button>
-                            </div>
-
-                            <div className="mt-auto pt-6 border-t border-border">
-                                <div className="flex justify-between text-xs text-muted-foreground mb-2">
-                                    <span>Balance</span>
-                                    <span>1,240.50 USDC</span>
+                    {/* Content */}
+                    <div style={{ flex: 1, padding: '20px', overflow: 'auto' }}>
+                        {activeTab === 'wager' && (
+                            <div style={{ textAlign: 'center', paddingTop: '40px' }}>
+                                <div style={{ fontSize: '32px', marginBottom: '8px' }}>💰</div>
+                                <div style={{ fontSize: '15px', fontWeight: 500, marginBottom: '8px' }}>
+                                    Place Your Wager
                                 </div>
-                                <Button variant="ghost" size="sm" className="w-full text-xs hover:bg-destructive/10 hover:text-destructive">
-                                    <Flag className="w-3 h-3 mr-2" /> Resign Game
-                                </Button>
+                                <div style={{ fontSize: '13px', color: '#666', marginBottom: '24px' }}>
+                                    Winner takes all
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {[10, 25, 50, 100].map((amt) => (
+                                        <button
+                                            key={amt}
+                                            style={{
+                                                padding: '12px',
+                                                background: '#111',
+                                                border: '1px solid #222',
+                                                borderRadius: '6px',
+                                                color: '#fff',
+                                                fontSize: '14px',
+                                                fontWeight: 500,
+                                            }}
+                                        >
+                                            {amt} USDC
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </Card>
-                </div>
+                        )}
+                        {activeTab === 'chat' && (
+                            <div style={{ color: '#555', fontSize: '13px', textAlign: 'center', paddingTop: '60px' }}>
+                                No messages yet
+                            </div>
+                        )}
+                        {activeTab === 'moves' && (
+                            <div style={{ fontSize: '13px' }}>
+                                {history.length === 0 ? (
+                                    <div style={{ color: '#555', textAlign: 'center', paddingTop: '60px' }}>
+                                        No moves yet
+                                    </div>
+                                ) : (
+                                    <div style={{ fontFamily: 'monospace' }}>
+                                        {history.map((move, i) => (
+                                            <span key={i} style={{
+                                                display: 'inline-block',
+                                                padding: '4px 8px',
+                                                background: '#111',
+                                                borderRadius: '4px',
+                                                margin: '2px',
+                                                fontSize: '12px',
+                                            }}>
+                                                {move}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
-            </div>
-        </main>
+                    {/* Resign */}
+                    <div style={{ padding: '16px', borderTop: '1px solid #1a1a1a' }}>
+                        <button
+                            onClick={resignGame}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                background: 'transparent',
+                                border: '1px solid #222',
+                                borderRadius: '6px',
+                                color: '#666',
+                                fontSize: '13px',
+                            }}
+                        >
+                            🏳️ Resign
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
     );
 }

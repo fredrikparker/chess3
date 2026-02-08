@@ -1,15 +1,20 @@
 'use client';
 
-import { Chessboard } from 'react-chessboard';
 import { useGameStore } from '@/store/useGameStore';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const Chessboard = dynamic(() => import('react-chessboard').then((mod) => mod.Chessboard), {
+    ssr: false,
+    loading: () => <div style={{ width: '100%', height: '100%', background: '#111' }} />
+});
 
 interface BoardProps {
     boardWidth?: number;
 }
 
 export default function Board({ boardWidth = 480 }: BoardProps) {
-    const { fen, turn, makeMove, lastMove } = useGameStore();
+    const { fen, makeMove } = useGameStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -18,21 +23,20 @@ export default function Board({ boardWidth = 480 }: BoardProps) {
 
     function onDrop(sourceSquare: string, targetSquare: string) {
         try {
-            const move = makeMove({
+            return makeMove({
                 from: sourceSquare,
                 to: targetSquare,
-                promotion: 'q', // always promote to queen for simplicity for now
+                promotion: 'q',
             });
-            return move;
-        } catch (e) {
+        } catch {
             return false;
         }
     }
 
-    if (!mounted) return <div className="aspect-square bg-[#15181e] rounded-lg animate-pulse" style={{ width: boardWidth }} />;
+    if (!mounted) return <div style={{ width: boardWidth, aspectRatio: '1', background: '#111' }} />;
 
     return (
-        <div className="relative group rounded-lg overflow-hidden shadow-2xl border border-white/10" style={{ width: boardWidth }}>
+        <div style={{ width: '100%', height: '100%' }}>
             <Chessboard
                 options={{
                     position: fen,
@@ -43,12 +47,11 @@ export default function Board({ boardWidth = 480 }: BoardProps) {
                         return false;
                     },
                     boardStyle: {
-                        borderRadius: "4px",
-                        boxShadow: "0 5px 15px rgba(0, 0, 0, 0.5)",
+                        borderRadius: '4px',
                     },
-                    darkSquareStyle: { backgroundColor: '#B08B4F' },
-                    lightSquareStyle: { backgroundColor: '#E4DED4' },
-                    animationDurationInMs: 200,
+                    darkSquareStyle: { backgroundColor: '#b58863' },
+                    lightSquareStyle: { backgroundColor: '#f0d9b5' },
+                    animationDurationMs: 200,
                 }}
             />
         </div>
